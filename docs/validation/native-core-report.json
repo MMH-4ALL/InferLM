@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "model": "qwen2.5-0.5b-instruct",
+  "fingerprint": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+  "settings": {
+    "context": 2048,
+    "threads": 2,
+    "gpu_layers": 0,
+    "batch": 256,
+    "ubatch": 128
+  },
+  "runtime": "version: 0.6.0-dev (build 11564, commit 08ffba21e)\nbuilt with GNU 11.4.0 for Linux x86_64",
+  "load_seconds": 0.6573322130000179,
+  "chat": {
+    "ttft_seconds": 0.19221170900004836,
+    "request_seconds": 0.6557665450000059,
+    "usage": {
+      "completion_tokens": 24,
+      "prompt_tokens": 29,
+      "total_tokens": 53,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 29,
+      "prompt_ms": 185.663,
+      "prompt_per_token_ms": 6.402172413793104,
+      "prompt_per_second": 156.19698055078288,
+      "predicted_n": 24,
+      "predicted_ms": 463.454,
+      "predicted_per_token_ms": 20.150173913043478,
+      "predicted_per_second": 49.627363233460066
+    }
+  }
+}

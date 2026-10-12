@@ -1,0 +1,33 @@
+name: Native unsigned packages
+on: [workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-lock.txt
+      - run: python -m pip install -e ".[gui,cli,packaging]"
+      - run: python scripts/package.py --build-runtime
+      - name: Linux GUI startup
+        if: runner.os == 'Linux'
+        run: dist/frozen/InferLM/InferLM --smoke-test
+      - name: Windows GUI startup
+        if: runner.os == 'Windows'
+        run: dist/frozen/InferLM/InferLM.exe --smoke-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: InferLM-${{ matrix.os }}-unsigned
+          path: |
+            dist/InferLM-*.zip
+            dist/*.sha256
+

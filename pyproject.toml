@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+[project]
+name = "inferlm"
+version = "0.1.0"
+description = "Local AI chat and measured laptop tuning"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = ["psutil==7.2.2", "httpx==0.28.1", "platformdirs==4.13.0", "filelock==3.32.7"]
+[project.optional-dependencies]
+gui = ["PySide6-Essentials==6.12.0"]
+cli = ["typer==0.27.3", "rich==14.3.4"]
+dev = ["pytest>=9,<10", "pytest-qt==4.5.0", "ruff>=0.17,<1", "mypy>=1.20,<2", "types-psutil", "build", "hatchling"]
+packaging = ["PyInstaller==6.22.3"]
+[project.scripts]
+inferlm = "inferlm.cli.app:main"
+inferlm-gui = "inferlm.app:main"
+[tool.hatch.build.targets.wheel]
+packages = ["src/inferlm"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["real: requires an actual local runtime and GGUF"]
+[tool.ruff]
+line-length = 110
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+

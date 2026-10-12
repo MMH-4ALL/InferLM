@@ -1,0 +1,24 @@
+{
+  "build": "b11564",
+  "commit": "08ffba21e",
+  "assets": [
+    {
+      "platform": "Linux",
+      "architecture": "x86_64",
+      "backend": "CPU",
+      "name": "llama-b11564-bin-ubuntu-x64.tar.gz",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11564/llama-b11564-bin-ubuntu-x64.tar.gz",
+      "sha256": "349c1499f28d93da836ba8c60160c2e77545f6cf30b4a038a0cf040ff0a949ef",
+      "size": 17711083
+    },
+    {
+      "platform": "Windows",
+      "architecture": "x86_64",
+      "backend": "CPU",
+      "name": "llama-b11564-bin-win-cpu-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11564/llama-b11564-bin-win-cpu-x64.zip",
+      "sha256": "d2cf631bd9ae31ca6426a691d42d37de2f9ac2985d687ed651b1f45013b23af8",
+      "size": 19501292
+    }
+  ]
+}

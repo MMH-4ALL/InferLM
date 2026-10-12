@@ -1,0 +1,440 @@
+{
+  "id": "fdaea4d3a6fe",
+  "timestamp": "2026-10-12T16:57:19.679564+00:00",
+  "label": "Measured",
+  "model_id": "42c1bceae848",
+  "fingerprint": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+  "hardware": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "physical_cores": 9,
+    "ram_total": 10451464192,
+    "gpus": []
+  },
+  "hardware_observation": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "physical_cores": 9,
+    "logical_cores": 9,
+    "ram_total": 10451464192,
+    "ram_available": 9713332224,
+    "swap_total": 0,
+    "swap_used": 0,
+    "disk_free": 29020729344,
+    "gpus": [],
+    "gpu_status": "Unavailable \u2014 no supported GPU telemetry provider",
+    "ac_power": null,
+    "timestamp": "2026-10-12T16:56:50.672073+00:00"
+  },
+  "settings": {
+    "context": 2048,
+    "threads": 4,
+    "gpu_layers": 0,
+    "batch": 256,
+    "ubatch": 128
+  },
+  "runtime_version": "version: 0.6.0-dev (build 11564, commit 08ffba21e)\nbuilt with GNU 11.4.0 for Linux x86_64",
+  "load_seconds": 0.611679901999878,
+  "native": {
+    "rows": [
+      {
+        "build_commit": "08ffba21e",
+        "build_number": 11564,
+        "cpu_info": "AMD EPYC 9V74 80-Core Processor",
+        "gpu_info": "",
+        "backends": "CPU",
+        "model_filename": "/workspace/scratch/f054a4c83879/runtime-test/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        "model_type": "qwen2 1B Q4_K - Medium",
+        "model_size": 485452288,
+        "model_n_params": 630167424,
+        "n_batch": 256,
+        "n_ubatch": 128,
+        "n_threads": 4,
+        "cpu_mask": "0x0",
+        "cpu_strict": false,
+        "poll": 50,
+        "type_k": "f16",
+        "type_v": "f16",
+        "n_gpu_layers": 0,
+        "n_cpu_moe": 0,
+        "split_mode": "layer",
+        "main_gpu": 0,
+        "no_kv_offload": false,
+        "flash_attn": -1,
+        "devices": "auto",
+        "tensor_split": "0.00",
+        "tensor_buft_overrides": "none",
+        "load_mode": "auto",
+        "lazy_mode": "auto",
+        "embeddings": false,
+        "no_op_offload": 0,
+        "no_host": false,
+        "repack": true,
+        "fit_target": 0,
+        "fit_min_ctx": 0,
+        "n_prompt": 128,
+        "n_gen": 0,
+        "n_depth": 0,
+        "test_time": "2026-10-12T16:56:50Z",
+        "avg_ns": 498724895,
+        "stddev_ns": 97441052,
+        "avg_ts": 262.772637,
+        "stddev_ts": 47.067502,
+        "samples_ns": [
+          609422718,
+          460818811,
+          425933157
+        ],
+        "samples_ts": [
+          210.035,
+          277.766,
+          300.517
+        ],
+        "requested_depth": 0,
+        "median_ts": 277.766
+      },
+      {
+        "build_commit": "08ffba21e",
+        "build_number": 11564,
+        "cpu_info": "AMD EPYC 9V74 80-Core Processor",
+        "gpu_info": "",
+        "backends": "CPU",
+        "model_filename": "/workspace/scratch/f054a4c83879/runtime-test/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        "model_type": "qwen2 1B Q4_K - Medium",
+        "model_size": 485452288,
+        "model_n_params": 630167424,
+        "n_batch": 256,
+        "n_ubatch": 128,
+        "n_threads": 4,
+        "cpu_mask": "0x0",
+        "cpu_strict": false,
+        "poll": 50,
+        "type_k": "f16",
+        "type_v": "f16",
+        "n_gpu_layers": 0,
+        "n_cpu_moe": 0,
+        "split_mode": "layer",
+        "main_gpu": 0,
+        "no_kv_offload": false,
+        "flash_attn": -1,
+        "devices": "auto",
+        "tensor_split": "0.00",
+        "tensor_buft_overrides": "none",
+        "load_mode": "auto",
+        "lazy_mode": "auto",
+        "embeddings": false,
+        "no_op_offload": 0,
+        "no_host": false,
+        "repack": true,
+        "fit_target": 0,
+        "fit_min_ctx": 0,
+        "n_prompt": 0,
+        "n_gen": 64,
+        "n_depth": 0,
+        "test_time": "2026-10-12T16:56:52Z",
+        "avg_ns": 823045352,
+        "stddev_ns": 16311522,
+        "avg_ts": 77.780486,
+        "stddev_ts": 1.55121,
+        "samples_ns": [
+          805258843,
+          826572509,
+          837304705
+        ],
+        "samples_ts": [
+          79.4776,
+          77.4282,
+          76.4357
+        ],
+        "requested_depth": 0,
+        "median_ts": 77.4282
+      },
+      {
+        "build_commit": "08ffba21e",
+        "build_number": 11564,
+        "cpu_info": "AMD EPYC 9V74 80-Core Processor",
+        "gpu_info": "",
+        "backends": "CPU",
+        "model_filename": "/workspace/scratch/f054a4c83879/runtime-test/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        "model_type": "qwen2 1B Q4_K - Medium",
+        "model_size": 485452288,
+        "model_n_params": 630167424,
+        "n_batch": 256,
+        "n_ubatch": 128,
+        "n_threads": 4,
+        "cpu_mask": "0x0",
+        "cpu_strict": false,
+        "poll": 50,
+        "type_k": "f16",
+        "type_v": "f16",
+        "n_gpu_layers": 0,
+        "n_cpu_moe": 0,
+        "split_mode": "layer",
+        "main_gpu": 0,
+        "no_kv_offload": false,
+        "flash_attn": -1,
+        "devices": "auto",
+        "tensor_split": "0.00",
+        "tensor_buft_overrides": "none",
+        "load_mode": "auto",
+        "lazy_mode": "auto",
+        "embeddings": false,
+        "no_op_offload": 0,
+        "no_host": false,
+        "repack": true,
+        "fit_target": 0,
+        "fit_min_ctx": 0,
+        "n_prompt": 128,
+        "n_gen": 0,
+        "n_depth": 1024,
+        "test_time": "2026-10-12T16:56:55Z",
+        "avg_ns": 444179635,
+        "stddev_ns": 5609582,
+        "avg_ts": 288.202224,
+        "stddev_ts": 3.6258,
+        "samples_ns": [
+          450294174,
+          439271462,
+          442973271
+        ],
+        "samples_ts": [
+          284.259,
+          291.392,
+          288.956
+        ],
+        "requested_depth": 1024,
+        "median_ts": 288.956
+      },
+      {
+        "build_commit": "08ffba21e",
+        "build_number": 11564,
+        "cpu_info": "AMD EPYC 9V74 80-Core Processor",
+        "gpu_info": "",
+        "backends": "CPU",
+        "model_filename": "/workspace/scratch/f054a4c83879/runtime-test/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        "model_type": "qwen2 1B Q4_K - Medium",
+        "model_size": 485452288,
+        "model_n_params": 630167424,
+        "n_batch": 256,
+        "n_ubatch": 128,
+        "n_threads": 4,
+        "cpu_mask": "0x0",
+        "cpu_strict": false,
+        "poll": 50,
+        "type_k": "f16",
+        "type_v": "f16",
+        "n_gpu_layers": 0,
+        "n_cpu_moe": 0,
+        "split_mode": "layer",
+        "main_gpu": 0,
+        "no_kv_offload": false,
+        "flash_attn": -1,
+        "devices": "auto",
+        "tensor_split": "0.00",
+        "tensor_buft_overrides": "none",
+        "load_mode": "auto",
+        "lazy_mode": "auto",
+        "embeddings": false,
+        "no_op_offload": 0,
+        "no_host": false,
+        "repack": true,
+        "fit_target": 0,
+        "fit_min_ctx": 0,
+        "n_prompt": 0,
+        "n_gen": 64,
+        "n_depth": 1024,
+        "test_time": "2026-10-12T16:57:00Z",
+        "avg_ns": 1059524105,
+        "stddev_ns": 71609817,
+        "avg_ts": 60.582759,
+        "stddev_ts": 3.957338,
+        "samples_ns": [
+          1141284780,
+          1007949843,
+          1029337692
+        ],
+        "samples_ts": [
+          56.0772,
+          63.4952,
+          62.1759
+        ],
+        "requested_depth": 1024,
+        "median_ts": 62.1759
+      }
+    ],
+    "generation_score": 62.1759,
+    "sampled_process_rss_peak": 0,
+    "benchmark_version": "load_backend: loaded RPC backend from /workspace/scratch/f054a4c83879/runtime-test/llama-b11564/libggml-rpc.so\nload_backend: loaded CPU backend from /workspace/scratch/f054a4c83879/runtime-test/llama-b11564/libggml-cpu-zen4.so\nversion: 0.6.0-dev (build 11564, commit 08ffba21e)\nbuilt with GNU 11.4.0 for Linux x86_64",
+    "depths": [
+      0,
+      1024
+    ]
+  },
+  "server_samples": [
+    {
+      "workload_tokens": 127,
+      "repetition": 0,
+      "ttft_seconds": 0.31947126299996853,
+      "request_seconds": 0.5054261349998797,
+      "usage": {
+        "completion_tokens": 15,
+        "prompt_tokens": 127,
+        "total_tokens": 142,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 127,
+        "prompt_ms": 312.557,
+        "prompt_per_token_ms": 2.4610787401574803,
+        "prompt_per_second": 406.3258861583647,
+        "predicted_n": 15,
+        "predicted_ms": 185.825,
+        "predicted_per_token_ms": 13.273214285714285,
+        "predicted_per_second": 75.3397013318983
+      }
+    },
+    {
+      "workload_tokens": 127,
+      "repetition": 1,
+      "ttft_seconds": 0.4201258170000983,
+      "request_seconds": 0.6206666410000707,
+      "usage": {
+        "completion_tokens": 15,
+        "prompt_tokens": 127,
+        "total_tokens": 142,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 127,
+        "prompt_ms": 409.734,
+        "prompt_per_token_ms": 3.226251968503937,
+        "prompt_per_second": 309.9571917390307,
+        "predicted_n": 15,
+        "predicted_ms": 202.072,
+        "predicted_per_token_ms": 14.433714285714286,
+        "predicted_per_second": 69.28223603468071
+      }
+    },
+    {
+      "workload_tokens": 127,
+      "repetition": 2,
+      "ttft_seconds": 0.4150523589999011,
+      "request_seconds": 0.6098493269998926,
+      "usage": {
+        "completion_tokens": 15,
+        "prompt_tokens": 127,
+        "total_tokens": 142,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 127,
+        "prompt_ms": 407.039,
+        "prompt_per_token_ms": 3.205031496062992,
+        "prompt_per_second": 312.00941433130487,
+        "predicted_n": 15,
+        "predicted_ms": 194.661,
+        "predicted_per_token_ms": 13.904357142857142,
+        "predicted_per_second": 71.9199017779627
+      }
+    },
+    {
+      "workload_tokens": 805,
+      "repetition": 0,
+      "ttft_seconds": 3.0157650190001277,
+      "request_seconds": 3.2800448770001367,
+      "usage": {
+        "completion_tokens": 14,
+        "prompt_tokens": 805,
+        "total_tokens": 819,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 805,
+        "prompt_ms": 3006.305,
+        "prompt_per_token_ms": 3.734540372670807,
+        "prompt_per_second": 267.77056885445757,
+        "predicted_n": 14,
+        "predicted_ms": 263.891,
+        "predicted_per_token_ms": 20.299307692307693,
+        "predicted_per_second": 49.2627637926265
+      }
+    },
+    {
+      "workload_tokens": 805,
+      "repetition": 1,
+      "ttft_seconds": 2.545099303999905,
+      "request_seconds": 2.7628709049999998,
+      "usage": {
+        "completion_tokens": 14,
+        "prompt_tokens": 805,
+        "total_tokens": 819,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 805,
+        "prompt_ms": 2528.268,
+        "prompt_per_token_ms": 3.1407055900621117,
+        "prompt_per_second": 318.3997898956914,
+        "predicted_n": 14,
+        "predicted_ms": 224.622,
+        "predicted_per_token_ms": 17.278615384615385,
+        "predicted_per_second": 57.87500779086643
+      }
+    },
+    {
+      "workload_tokens": 805,
+      "repetition": 2,
+      "ttft_seconds": 2.775621081000054,
+      "request_seconds": 3.0065355140000065,
+      "usage": {
+        "completion_tokens": 14,
+        "prompt_tokens": 805,
+        "total_tokens": 819,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 805,
+        "prompt_ms": 2767.951,
+        "prompt_per_token_ms": 3.438448447204969,
+        "prompt_per_second": 290.82884776500737,
+        "predicted_n": 14,
+        "predicted_ms": 230.753,
+        "predicted_per_token_ms": 17.750230769230768,
+        "predicted_per_second": 56.33729572313253
+      }
+    }
+  ],
+  "median_ttft_seconds": 1.4826125605000016,
+  "sampled_server_rss_peak": 0,
+  "gpu_memory": "Unavailable as a process-attributed measurement",
+  "conditions": {
+    "cache_prompt": false,
+    "warmup_excluded": true,
+    "repetitions": 3,
+    "sampling_interval_seconds": 0.1,
+    "token_source": "runtime",
+    "ac_power": null,
+    "quality": "Not evaluated"
+  },
+  "duration_seconds": 29.007192258000032
+}

@@ -1,0 +1,43 @@
+{
+  "id": "5f74ccdd5a55",
+  "created": "2026-10-12T16:53:11.092739+00:00",
+  "model_id": "7835b44e6fe5",
+  "fingerprint": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+  "hardware": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "physical_cores": 9,
+    "ram_total": 10451464192,
+    "gpus": []
+  },
+  "runtime_version": "version: 0.6.0-dev (build 11564, commit 08ffba21e)\nbuilt with GNU 11.4.0 for Linux x86_64",
+  "settings": {
+    "context": 2048,
+    "threads": 8,
+    "gpu_layers": 0,
+    "batch": 256,
+    "ubatch": 128
+  },
+  "baseline_settings": {
+    "context": 2048,
+    "threads": 2,
+    "gpu_layers": 0,
+    "batch": 256,
+    "ubatch": 128
+  },
+  "baseline_run": "4ed6561ade8f",
+  "selected_run": "ef312ab72c52",
+  "conclusion": "Measured 89.1% higher native generation throughput on these workloads.",
+  "mode": "quick",
+  "failed_candidates": [],
+  "completed_runs": [
+    "7b9ef03d3f85",
+    "fafd2b371676",
+    "beb6f792c39a",
+    "ef312ab72c52",
+    "400c7f342aa5",
+    "60bb2b70359d"
+  ],
+  "comparison": "Same weights, f16 cache, context capacity and workload; quality not measured."
+}
