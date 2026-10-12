@@ -1,20 +1,22 @@
 import json
 import re
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from PySide6.QtCore import Qt,QThread,QTimer,Signal
-from PySide6.QtGui import QTextCursor
+from PySide6.QtGui import QTextCursor,QKeySequence,QShortcut,QAction,QTextDocument
 from PySide6.QtWidgets import (
     QApplication,QComboBox,QDoubleSpinBox,QFileDialog,QFormLayout,QFrame,QHBoxLayout,
     QHeaderView,QInputDialog,QLabel,QLineEdit,QListWidget,QListWidgetItem,QMainWindow,
-    QMessageBox,QPlainTextEdit,QProgressBar,QPushButton,QSpinBox,QSplitter,QStackedWidget,
-    QTableWidget,QTableWidgetItem,QTextBrowser,QVBoxLayout,QWidget,
+    QMessageBox,QPlainTextEdit,QProgressBar,QPushButton,QSpinBox,QStackedWidget,
+    QTableWidget,QTableWidgetItem,QTextBrowser,QVBoxLayout,QWidget,QMenu,QScrollArea,
 )
 from inferlm import __version__
 from inferlm.core.services import Services
 from inferlm.core.types import GIB,Settings
 from inferlm.gui.jobs import Worker
-from inferlm.gui.theme import stylesheet
+from inferlm.gui.theme import stylesheet,colors,document_style
+from inferlm.gui.commands import CommandPalette
 from inferlm.gui.icons import icon
 from inferlm.hardware.detect import detect
 from inferlm.hardware.memory import plan
@@ -31,6 +33,7 @@ def button(text,action,primary=False):
 
 def label(text,name=""):
     widget = QLabel(text)
+    widget.setTextFormat(Qt.TextFormat.PlainText)
     widget.setWordWrap(True)
     widget.setObjectName(name)
     return widget
@@ -40,6 +43,16 @@ def row(*widgets):
     for widget in widgets:
         layout.addWidget(widget)
     return layout
+
+class Transcript(QTextBrowser):
+    def setMarkdown(self,text):
+        # Convert Qt's Markdown to HTML so paragraph/role spacing follows the theme.
+        doc = QTextDocument()
+        doc.setMarkdown(text,QTextDocument.MarkdownFeature.MarkdownNoHTML)
+        html = doc.toHtml().split("<body",1)[1].split(">",1)[1].rsplit("</body>",1)[0]
+        html = re.sub(r'(<(?:p|h[1-6]|ul|ol|li|pre|blockquote)) style="[^"]*"',r"\1",html)
+        html = re.sub(r'font-size:[^;"]+;?',"",html)
+        self.setHtml(html)
 
 class Composer(QPlainTextEdit):
     send = Signal()
@@ -56,71 +69,189 @@ class Window(QMainWindow):
         self.job_thread:QThread|None = None
         self.worker:Worker|None = None
         self.busy_controls:list[QWidget] = []
+        self.busy_actions:list[QAction] = []
         self.conversation_id,self.base_markdown,self.stream_text = "","",""
         self.rendered_length,self.closing = 0,False
         self.hardware_snapshot = None
-        self.setWindowTitle("InferLM · Local AI")
-        self.resize(1280,820)
-        self.setMinimumSize(960,620)
+        self.setWindowTitle("InferLM · Local workspace")
+        self.resize(1320,840)
+        self.setMinimumSize(860,620)
         self.setAcceptDrops(True)
         root = QWidget()
         self.setCentralWidget(root)
         outer = QHBoxLayout(root)
         outer.setContentsMargins(0,0,0,0)
         outer.setSpacing(0)
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(208)
-        side = QVBoxLayout(sidebar)
-        side.setContentsMargins(20,30,20,22)
-        side.addWidget(label("InferLM","brand"))
-        side.addWidget(label("LOCAL. YOURS.","eyebrow"))
-        side.addSpacing(32)
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setFixedWidth(232)
+        side = QVBoxLayout(self.sidebar)
+        side.setContentsMargins(14,20,14,16)
+        side.setSpacing(12)
+        brand = QHBoxLayout()
+        brand.addWidget(label("[i]","brandMark"))
+        brand.addWidget(label("InferLM","brand"))
+        brand.addStretch()
+        brand.addWidget(label(__version__,"hint"))
+        side.addLayout(brand)
+        side.addSpacing(8)
         self.nav = QListWidget()
+        self.nav.setObjectName("navigation")
         self.nav.addItems(["Chat","Models","Optimize","Benchmarks","Settings"])
-        for i in range(5):
-            self.nav.item(i).setIcon(icon(i))
+        self.nav.setFixedHeight(232)
+        self.nav.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.nav.setAccessibleName("Main navigation")
         side.addWidget(self.nav)
-        side.addWidget(label("Your chats stay\non your laptop.","subtitle"))
-        side.addSpacing(12)
-        side.addWidget(label("DEVELOPMENT "+__version__,"eyebrow"))
-        outer.addWidget(sidebar)
+        side.addSpacing(10)
+        session_heading = QHBoxLayout()
+        session_heading.addWidget(label("SESSIONS","eyebrow"))
+        session_heading.addStretch()
+        self.session_menu = self.action_menu("Session actions",[
+            ("Rename session",self.rename_chat), ("Export session…",self.export_chat),
+            ("Delete session…",self.delete_chat)])
+        session_heading.addWidget(self.session_menu)
+        side.addLayout(session_heading)
+        new_session = self.controlled(button("+ New session",self.new_chat))
+        new_session.setToolTip("New session · Ctrl+N")
+        side.addWidget(new_session)
+        self.session_search = QLineEdit()
+        self.session_search.setObjectName("sessionSearch")
+        self.session_search.setPlaceholderText("Search sessions…")
+        self.session_search.setAccessibleName("Search saved sessions")
+        self.session_search.textChanged.connect(self.filter_conversations)
+        side.addWidget(self.session_search)
+        self.conversations = QListWidget()
+        self.conversations.setObjectName("sessions")
+        self.conversations.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.conversations.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.conversations.setAccessibleName("Saved conversations")
+        self.conversations.itemClicked.connect(self.open_session)
+        side.addWidget(self.conversations,1)
+        self.session_empty = label("No saved sessions yet.","hint")
+        side.addWidget(self.session_empty)
+        self.device_summary = label("Inspecting this device…","hint")
+        side.addWidget(label("THIS DEVICE","eyebrow"))
+        side.addWidget(self.device_summary)
+        side.addSpacing(6)
+        side.addWidget(button("Commands    Ctrl+P",self.show_commands))
+        outer.addWidget(self.sidebar)
         body = QVBoxLayout()
-        body.setContentsMargins(30,24,30,22)
-        top = QHBoxLayout()
-        top.addWidget(label("YOUR LOCAL WORKSPACE","eyebrow"))
-        top.addStretch()
-        self.status = label("No model loaded","status")
-        top.addWidget(self.status)
-        body.addLayout(top)
+        body.setContentsMargins(0,0,0,0)
+        body.setSpacing(0)
+        header = QFrame()
+        header.setObjectName("workspaceHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(20,10,20,10)
+        toggle = button("☰",self.toggle_sidebar)
+        toggle.setObjectName("ghost")
+        toggle.setAccessibleName("Toggle sidebar")
+        toggle.setToolTip("Toggle sidebar · Ctrl+B")
+        header_layout.addWidget(toggle)
+        self.breadcrumb = label("workspace / chat","breadcrumb")
+        header_layout.addWidget(self.breadcrumb,1)
+        self.status = label("○  No model loaded","status")
+        self.status.setMaximumWidth(300)
+        self.status.setWordWrap(False)
+        header_layout.addWidget(self.status)
+        body.addWidget(header)
         self.pages = QStackedWidget()
         body.addWidget(self.pages,1)
         self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
         self.progress.hide()
         body.addWidget(self.progress)
-        self.feedback = label("Add a local GGUF and select a llama.cpp runtime to begin.","subtitle")
+        taskbar = QFrame()
+        taskbar.setObjectName("taskbar")
+        task_layout = QHBoxLayout(taskbar)
+        task_layout.setContentsMargins(20,8,20,8)
+        self.feedback = label("Add a GGUF model to get started.","hint")
         self.feedback.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        body.addWidget(self.feedback)
-        self.stop_button = button("Stop current task",self.stop)
+        task_layout.addWidget(self.feedback,1)
+        self.stop_button = button("Stop · Esc",self.stop)
+        self.stop_button.setAccessibleName("Stop current task")
         self.stop_button.setEnabled(False)
-        body.addWidget(self.stop_button,alignment=Qt.AlignmentFlag.AlignRight)
+        self.stop_button.hide()
+        task_layout.addWidget(self.stop_button)
+        body.addWidget(taskbar)
         outer.addLayout(body,1)
         self.make_chat()
         self.make_models()
         self.make_optimize()
         self.make_benchmarks()
         self.make_settings()
-        self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
+        self.nav.currentRowChanged.connect(self.navigate)
         self.nav.setCurrentRow(0)
+        self.shortcuts = []
+        for key,action in [("Ctrl+P",self.show_commands),("Ctrl+B",self.toggle_sidebar),
+                           ("Ctrl+N",self.new_chat),("Escape",self.stop)]:
+            shortcut = QShortcut(QKeySequence(key),self)
+            shortcut.activated.connect(action)
+            self.shortcuts.append(shortcut)
+        for index in range(5):
+            shortcut = QShortcut(QKeySequence("Ctrl+"+str(index+1)),self)
+            shortcut.activated.connect(lambda index=index:self.nav.setCurrentRow(index))
+            self.shortcuts.append(shortcut)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.flush_stream)
         self.timer.start(80)
         self.refresh_models()
         self.refresh_conversations()
         self.refresh_reports()
-        self.setStyleSheet(stylesheet(self.s.config()["theme"]))
+        self.apply_theme(self.s.config()["theme"])
         QTimer.singleShot(0,self.refresh_hardware)
+
+    def action_menu(self,name,actions):
+        control = button("···",lambda:None)
+        control.setObjectName("ghost")
+        control.setAccessibleName(name)
+        control.setToolTip(name)
+        menu = QMenu(control)
+        for title,callback in actions:
+            action = menu.addAction(title)
+            action.triggered.connect(callback)
+            self.busy_actions.append(action)
+        control.setMenu(menu)
+        return control
+
+    def apply_theme(self,theme):
+        self.setStyleSheet(stylesheet(theme))
+        for index in range(5):
+            self.nav.item(index).setIcon(icon(index,colors(theme)["muted"]))
+        self.transcript.document().setDefaultStyleSheet(document_style(theme))
+        self.transcript.document().setDocumentMargin(18)
+        self.transcript.setMarkdown(self.base_markdown)
+
+    def change_theme(self,theme):
+        self.apply_theme(theme)
+        self.s.save_config({"theme":theme})
+        self.feedback.setText("Appearance saved.")
+
+    def navigate(self,index):
+        if index < 0:
+            return
+        self.pages.setCurrentIndex(index)
+        self.breadcrumb.setText("workspace / "+["chat","models","optimize","benchmarks","settings"][index])
+
+    def toggle_sidebar(self):
+        self.sidebar.setVisible(self.sidebar.isHidden())
+
+    def open_session(self,item):
+        self.nav.setCurrentRow(0)
+        self.open_conversation(item)
+
+    def show_commands(self):
+        commands:list[tuple[str,str,Callable]] = [("Open "+name,"Ctrl+"+str(i+1),lambda i=i:self.nav.setCurrentRow(i))
+                    for i,name in enumerate(["Chat","Models","Optimize","Benchmarks","Settings"])]
+        commands.append(("Toggle sidebar","Ctrl+B",self.toggle_sidebar))
+        if self.job_thread is None:
+            commands.extend([("New session","Ctrl+N",self.new_chat),
+                ("Import GGUF model…","",self.add_model),("Load selected model","",self.load_model),
+                ("Unload model","",self.unload),("Export current session…","",self.export_chat),
+                ("Copy last answer","",self.copy_answer),("Run benchmark","",self.run_benchmark),
+                ("Quick tune","",lambda:self.tune("quick"))])
+        else:
+            commands.append(("Stop current task","Esc",self.stop))
+        CommandPalette(self,commands).exec()
 
     def controlled(self,widget):
         self.busy_controls.append(widget)
@@ -129,65 +260,121 @@ class Window(QMainWindow):
     def page(self,title,subtitle):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0,18,0,0)
-        layout.setSpacing(14)
+        layout.setContentsMargins(28,28,28,28)
+        layout.setSpacing(16)
         layout.addWidget(label(title,"title"))
         layout.addWidget(label(subtitle,"subtitle"))
-        self.pages.addWidget(widget)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(widget)
+        self.pages.addWidget(scroll)
         return layout
 
     def make_chat(self):
-        page = self.page("A conversation, on your terms.","Choose a model. Keep the conversation on your laptop.")
-        self.model_combo = QComboBox()
-        self.model_combo.setMinimumWidth(220)
-        self.model_combo.setAccessibleName("Chat model")
-        self.model_combo.currentIndexChanged.connect(self.model_changed)
-        self.busy_controls.append(self.model_combo)
-        page.addLayout(row(self.model_combo,self.controlled(button("Load model",self.load_model,True)),
-                           self.controlled(button("Unload",self.unload))))
-        split = QSplitter()
-        left = QWidget()
-        sidebar = QVBoxLayout(left)
-        sidebar.setContentsMargins(0,0,12,0)
-        sidebar.addWidget(self.controlled(button("+ New conversation",self.new_chat)))
-        self.conversations = QListWidget()
-        self.conversations.setAccessibleName("Saved conversations")
-        self.conversations.itemClicked.connect(self.open_conversation)
-        sidebar.addWidget(self.conversations)
-        for text,action in (("Rename",self.rename_chat),("Export",self.export_chat),("Delete conversation",self.delete_chat)):
-            sidebar.addWidget(self.controlled(button(text,action)))
-        right = QWidget()
-        chat = QVBoxLayout(right)
-        chat.setContentsMargins(0,0,0,0)
-        self.transcript = QTextBrowser()
+        page = QWidget()
+        self.pages.addWidget(page)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(24,18,24,14)
+        page_layout.setSpacing(12)
+        heading = QHBoxLayout()
+        self.session_title = label("New session","sessionTitle")
+        heading.addWidget(self.session_title,1)
+        self.message_menu = self.action_menu("Message actions",[
+            ("Copy last answer",self.copy_answer),("Copy code block",self.copy_code),
+            ("Retry last answer",self.retry),("Edit last prompt",self.edit_prompt),
+            ("Trim older turns…",self.trim_history)])
+        heading.addWidget(self.message_menu)
+        page_layout.addLayout(heading)
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0,0,0,0)
+        content_row.addStretch(1)
+        column = QWidget()
+        column.setMaximumWidth(900)
+        content = QVBoxLayout(column)
+        content.setContentsMargins(0,0,0,0)
+        content.setSpacing(10)
+        self.chat_surface = QStackedWidget()
+        welcome = QWidget()
+        intro = QVBoxLayout(welcome)
+        intro.setContentsMargins(24,24,24,24)
+        intro.addStretch(2)
+        wordmark = label("InferLM","wordmark")
+        wordmark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        intro.addWidget(wordmark)
+        motto = label("Local intelligence. Your machine.","subtitle")
+        motto.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        intro.addWidget(motto)
+        intro.addSpacing(24)
+        for text,callback in [("01   Import a GGUF model     →",self.add_model),
+                              ("02   Set up your runtime    →",lambda:self.nav.setCurrentRow(4)),
+                              ("03   Find the right settings →",lambda:self.nav.setCurrentRow(2))]:
+            action = self.controlled(button(text,callback))
+            action.setObjectName("suggestion")
+            intro.addWidget(action)
+        intro.addSpacing(16)
+        note = label("On-device chat · No account needed","hint")
+        note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        intro.addWidget(note)
+        intro.addStretch(3)
+        self.chat_surface.addWidget(welcome)
+        self.transcript = Transcript()
+        self.transcript.setObjectName("transcript")
         self.transcript.setOpenExternalLinks(False)
         self.transcript.anchorClicked.connect(self.open_link)
         self.transcript.setAccessibleName("Conversation transcript")
-        self.transcript.setMarkdown("## Ready when you are\n\nAdd a GGUF in **Models** and configure your runtime in **Settings**.")
-        chat.addWidget(self.transcript,1)
-        chat.addLayout(row(self.controlled(button("Copy last answer",self.copy_answer)),
-                           self.controlled(button("Copy code block",self.copy_code)),
-                           self.controlled(button("Retry",self.retry)),
-                           self.controlled(button("Edit last prompt",self.edit_prompt)),
-                           self.controlled(button("Trim older turns…",self.trim_history))))
+        self.chat_surface.addWidget(self.transcript)
+        content.addWidget(self.chat_surface,1)
+        frame = QFrame()
+        frame.setObjectName("composerFrame")
+        composer_layout = QVBoxLayout(frame)
+        composer_layout.setContentsMargins(12,8,12,10)
+        composer_layout.setSpacing(8)
         self.composer = Composer()
-        self.composer.setPlaceholderText("Message your local model… Enter sends · Shift+Enter adds a line")
+        self.composer.setObjectName("composer")
+        self.composer.setPlaceholderText("Ask anything. It runs here.")
         self.composer.setAccessibleName("Message input")
-        self.composer.setMaximumHeight(112)
+        self.composer.setMinimumHeight(64)
+        self.composer.setMaximumHeight(100)
         self.composer.send.connect(self.send)
-        chat.addWidget(self.composer)
+        composer_layout.addWidget(self.composer)
         footer = QHBoxLayout()
-        footer.addWidget(label("Local inference","subtitle"))
+        footer.setSpacing(6)
+        self.model_combo = QComboBox()
+        self.model_combo.setMinimumWidth(170)
+        self.model_combo.setMaximumWidth(320)
+        self.model_combo.setAccessibleName("Chat model")
+        self.model_combo.setToolTip("Select a local model")
+        self.model_combo.currentIndexChanged.connect(self.model_changed)
+        self.busy_controls.append(self.model_combo)
+        footer.addWidget(self.model_combo,1)
+        self.load_button = self.controlled(button("Load",self.load_model))
+        self.load_button.setAccessibleName("Load model")
+        footer.addWidget(self.load_button)
+        self.unload_button = self.controlled(button("Unload",self.unload))
+        footer.addWidget(self.unload_button)
         footer.addStretch()
-        footer.addWidget(self.controlled(button("Send message",self.send,True)))
-        chat.addLayout(footer)
-        split.addWidget(left)
-        split.addWidget(right)
-        split.setSizes([210,760])
-        page.addWidget(split,1)
+        self.send_button = self.controlled(button("↑",self.send,True))
+        self.send_button.setAccessibleName("Send message")
+        self.send_button.setToolTip("Send message · Enter")
+        self.send_button.setFixedWidth(40)
+        footer.addWidget(self.send_button)
+        composer_layout.addLayout(footer)
+        content.addWidget(frame)
+        hints = QHBoxLayout()
+        send_hint = label("Enter send   ·   Shift+Enter newline","hint")
+        send_hint.setWordWrap(False)
+        hints.addWidget(send_hint,1)
+        hints.addStretch()
+        command_hint = label("Ctrl+P commands","hint")
+        command_hint.setWordWrap(False)
+        hints.addWidget(command_hint)
+        content.addLayout(hints)
+        content_row.addWidget(column,8)
+        content_row.addStretch(1)
+        page_layout.addLayout(content_row,1)
 
     def make_models(self):
-        page = self.page("Your model library.","Import an existing GGUF. Its weights stay where you put them.")
+        page = self.page("Models","Local GGUF files. Import, inspect, and load.")
         page.addLayout(row(self.controlled(button("Add GGUF model…",self.add_model,True)),
                            self.controlled(button("Relink selected…",self.relink_model)),
                            self.controlled(button("Remove from library",self.remove_model))))
@@ -198,6 +385,9 @@ class Window(QMainWindow):
         self.model_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.model_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.model_table.setAlternatingRowColors(True)
+        self.model_table.setMinimumHeight(220)
+        self.model_table.verticalHeader().hide()
+        self.model_table.verticalHeader().setDefaultSectionSize(44)
         self.model_table.itemSelectionChanged.connect(self.show_model_details)
         page.addWidget(self.model_table,1)
         self.model_details = QTextBrowser()
@@ -206,7 +396,7 @@ class Window(QMainWindow):
         page.addWidget(self.model_details)
 
     def make_optimize(self):
-        page = self.page("Find what works on this laptop.","Measured tuning: the same model, context capacity and workloads.")
+        page = self.page("Optimize","Measure before changing. Compare settings on this device.")
         self.hardware_label = label("Inspecting hardware…","subtitle")
         self.memory_label = label("Select a model for an estimated memory plan.","subtitle")
         page.addWidget(self.hardware_label)
@@ -238,10 +428,20 @@ class Window(QMainWindow):
         self.busy_controls.append(self.budget)
         page.addLayout(row(self.controlled(button("Quick Tune · up to 6",lambda:self.tune("quick"),True)),
                            self.controlled(button("Thorough Tune · up to 12",lambda:self.tune("thorough"))),
-                           self.controlled(button("Run benchmark",self.run_benchmark)),self.budget))
+                           self.controlled(button("Run benchmark",self.run_benchmark))))
+        budget_row = QHBoxLayout()
+        budget_row.addWidget(label("Time budget","subtitle"))
+        self.budget.setMaximumWidth(180)
+        budget_row.addWidget(self.budget)
+        budget_row.addStretch()
+        page.addLayout(budget_row)
         page.addWidget(label("Tuning temporarily unloads the chat model. Cancellation preserves your active settings.","subtitle"))
+        page.addWidget(label("SAVED PROFILES","eyebrow"))
+        self.profile_empty = label("No measured profiles yet. Run a benchmark, then tune.","hint")
+        page.addWidget(self.profile_empty)
         self.profile_list = QListWidget()
         self.profile_list.setAccessibleName("Saved optimization profiles")
+        self.profile_list.setMinimumHeight(140)
         page.addWidget(self.profile_list,1)
         page.addLayout(row(self.controlled(button("Apply selected profile",self.apply_profile)),
                            self.controlled(button("Restore profile baseline",self.restore_baseline)),
@@ -253,20 +453,21 @@ class Window(QMainWindow):
         page.addWidget(self.tuning_log)
 
     def make_benchmarks(self):
-        page = self.page("Evidence, without the guesswork.","Every result records its model, runtime, hardware and conditions.")
+        page = self.page("Benchmarks","Recorded measurements for each model, runtime, and device.")
         self.report_list = QListWidget()
         self.report_list.setMaximumHeight(150)
         self.report_list.itemClicked.connect(self.show_report)
         self.report_list.setAccessibleName("Measured benchmark runs")
         page.addWidget(self.report_list)
         self.report_view = QTextBrowser()
+        self.report_view.setMinimumHeight(260)
         self.report_view.setPlainText("No measured runs yet. Run a benchmark from Optimize.")
         page.addWidget(self.report_view,1)
         page.addWidget(self.controlled(button("Export selected JSON…",self.export_report)),
                        alignment=Qt.AlignmentFlag.AlignRight)
 
     def make_settings(self):
-        page = self.page("A small set of useful controls.","Choose your runtime and preferences. Data stays in your user folder.")
+        page = self.page("Settings","Runtime, appearance, and local generation preferences.")
         cfg = self.s.config()
         form = QFormLayout()
         self.runtime_path = QLineEdit(cfg["runtime_folder"])
@@ -281,6 +482,7 @@ class Window(QMainWindow):
         self.theme = QComboBox()
         self.theme.addItems(["dark","light"])
         self.theme.setCurrentText(cfg["theme"])
+        self.theme.currentTextChanged.connect(self.change_theme)
         form.addRow("Theme",self.theme)
         self.temperature = QDoubleSpinBox()
         self.temperature.setRange(0,2)
@@ -316,10 +518,13 @@ class Window(QMainWindow):
             return
         self.s.cancel.clear()
         self.feedback.setText(description)
-        self.status.setText("Working")
+        self.status.setText("◌  Working")
         self.progress.setRange(0,0)
         self.progress.show()
         self.stop_button.setEnabled(True)
+        self.stop_button.show()
+        for action in self.busy_actions:
+            action.setEnabled(False)
         for control in self.busy_controls:
             control.setEnabled(False)
         self.conversations.setEnabled(False)
@@ -352,10 +557,14 @@ class Window(QMainWindow):
         self.job_thread,self.worker = None,None
         self.progress.hide()
         self.stop_button.setEnabled(False)
+        self.stop_button.hide()
+        for action in self.busy_actions:
+            action.setEnabled(True)
         for control in self.busy_controls:
             control.setEnabled(True)
         self.conversations.setEnabled(True)
-        self.status.setText("Ready · "+self.s.runtime.model.name if self.s.runtime.model else "No model loaded")
+        self.status.setText("●  Model ready" if self.s.runtime.model else "○  No model loaded")
+        self.status.setToolTip(self.s.runtime.model.name if self.s.runtime.model else "Load a local GGUF model to chat.")
         self.flush_stream()
         conv = self.s.db.get("conversations",self.conversation_id) if self.conversation_id else None
         if conv:
@@ -366,6 +575,8 @@ class Window(QMainWindow):
             self.close()
 
     def stop(self):
+        if self.job_thread is None:
+            return
         self.feedback.setText("Stopping current task…")
         self.s.stop_job()
 
@@ -397,6 +608,7 @@ class Window(QMainWindow):
         selected = self.model_combo.currentData()
         self.model_combo.blockSignals(True)
         self.model_combo.clear()
+        self.model_combo.setPlaceholderText("Select a local model…")
         models = self.s.models()
         self.model_table.setRowCount(len(models))
         for i,model in enumerate(models):
@@ -421,7 +633,9 @@ class Window(QMainWindow):
         self.hardware_label.setText(f"{hw.cpu} · {hw.physical_cores} cores · "
                                    f"{hw.ram_available/GIB:.1f}/{hw.ram_total/GIB:.1f} GiB RAM available\n"
                                    +(" · ".join(g.name for g in hw.gpus) or hw.gpu_status))
-        self.feedback.setText("Hardware observed locally. Performance has not been assumed.")
+        self.device_summary.setText(f"{hw.physical_cores} CPU cores · {hw.ram_total/GIB:.0f} GiB RAM\n"
+                                    +(" / ".join(g.name for g in hw.gpus) or "CPU runtime available"))
+        self.feedback.setText("Device ready. Add a model or continue a saved session.")
         self.update_memory()
 
     def update_memory(self,*_):
@@ -512,9 +726,13 @@ class Window(QMainWindow):
         self.job(lambda p,c:self.s.runtime.stop(),lambda _:self.feedback.setText("Model unloaded."),"Unloading…")
 
     def new_chat(self):
+        if self.job_thread is not None:
+            return
+        self.nav.setCurrentRow(0)
         try:
             conv = self.s.new_conversation(self.selected_model().id)
             self.conversation_id = conv["id"]
+            self.composer.clear()
             self.refresh_conversations()
             self.show_conversation(conv)
         except ValueError as exc:
@@ -525,9 +743,22 @@ class Window(QMainWindow):
         for conv in self.s.db.list("conversations"):
             item = QListWidgetItem(conv["title"])
             item.setData(Qt.ItemDataRole.UserRole,conv["id"])
+            item.setToolTip(conv["title"])
             self.conversations.addItem(item)
             if conv["id"]==self.conversation_id:
                 self.conversations.setCurrentItem(item)
+        self.filter_conversations()
+
+    def filter_conversations(self,*_):
+        query = self.session_search.text().casefold()
+        visible = 0
+        for i in range(self.conversations.count()):
+            item = self.conversations.item(i)
+            matched = query in item.text().casefold()
+            item.setHidden(not matched)
+            visible += int(matched)
+        self.session_empty.setText("No matching sessions." if query else "No saved sessions yet.")
+        self.session_empty.setVisible(visible == 0)
 
     def open_conversation(self,item):
         self.conversation_id = item.data(Qt.ItemDataRole.UserRole)
@@ -538,7 +769,9 @@ class Window(QMainWindow):
             self.composer.setPlainText(conv.get("draft",""))
 
     def show_conversation(self,conv):
-        self.base_markdown = "\n\n".join("### "+m["role"].title()+"\n\n"+m["content"]+
+        self.session_title.setText(conv["title"])
+        self.chat_surface.setCurrentIndex(1 if conv["messages"] else 0)
+        self.base_markdown = "\n\n".join("### "+("You" if m["role"]=="user" else "InferLM")+"\n\n"+m["content"]+
             ("\n\n*"+m["state"]+"*" if m["state"] not in ("complete","generating") else "") for m in conv["messages"])
         self.stream_text,self.rendered_length = "",0
         self.transcript.setMarkdown(self.base_markdown or "## New conversation\n\nAsk your local model a question.")
@@ -558,7 +791,8 @@ class Window(QMainWindow):
                 self.new_chat()
                 conv = self.s.db.get("conversations",self.conversation_id)
             self.show_conversation(conv)
-            self.base_markdown += "\n\n### You\n\n"+text+"\n\n### Assistant\n\n"
+            self.chat_surface.setCurrentIndex(1)
+            self.base_markdown += "\n\n### You\n\n"+text+"\n\n### InferLM\n\n"
             self.transcript.setMarkdown(self.base_markdown)
             self.composer.clear()
             conversation_id = self.conversation_id
@@ -591,11 +825,14 @@ class Window(QMainWindow):
         if not self.conversation_id:
             return
         conv = self.s.db.get("conversations",self.conversation_id)
+        if not conv:
+            return
         title,ok = QInputDialog.getText(self,"Rename conversation","Name:",text=conv["title"])
         if ok and title.strip():
             conv["title"] = title.strip()[:120]
             self.s.db.put("conversations",self.conversation_id,conv)
             self.refresh_conversations()
+            self.session_title.setText(conv["title"])
 
     def delete_chat(self):
         if self.conversation_id and QMessageBox.question(self,"Delete conversation","Delete the saved conversation?",
@@ -603,7 +840,10 @@ class Window(QMainWindow):
             self.s.db.delete("conversations",self.conversation_id)
             self.conversation_id,self.base_markdown,self.stream_text = "","",""
             self.refresh_conversations()
-            self.transcript.setMarkdown("## Ready for a new conversation")
+            self.transcript.clear()
+            self.composer.clear()
+            self.session_title.setText("New session")
+            self.chat_surface.setCurrentIndex(0)
 
     def export_chat(self):
         if self.conversation_id:
@@ -694,6 +934,7 @@ class Window(QMainWindow):
             item = QListWidgetItem(profile["conclusion"])
             item.setData(Qt.ItemDataRole.UserRole,profile["id"])
             self.profile_list.addItem(item)
+        self.profile_empty.setVisible(self.profile_list.count()==0)
 
     def show_report(self,item):
         report = self.s.db.get("benchmarks",item.data(Qt.ItemDataRole.UserRole))
@@ -721,6 +962,8 @@ class Window(QMainWindow):
         item = self.profile_list.currentItem()
         if item:
             record = self.s.db.get("profiles",item.data(Qt.ItemDataRole.UserRole))
+            if not record:
+                return
             self.s.db.put("active_settings",record["model_id"],record["baseline_settings"])
             self.model_changed()
             self.feedback.setText("Baseline settings restored. Reload to apply.")
@@ -736,13 +979,13 @@ class Window(QMainWindow):
                "temperature":self.temperature.value(),"max_tokens":self.answer_limit.value(),
                "reserve_gib":self.ram_reserve.value(),"system_prompt":self.system_prompt.toPlainText()}
         def operation(p,c):
-            server,bench = binaries(cfg["runtime_folder"])
+            server,bench = binaries(str(cfg["runtime_folder"]))
             caps = inspect(server)
             inspect(bench)
             self.s.save_config(cfg)
             return caps.version
         def saved(version):
-            self.setStyleSheet(stylesheet(cfg["theme"]))
+            self.apply_theme(cfg["theme"])
             self.update_memory()
             self.feedback.setText("Settings saved. Runtime: "+version.split("\n")[0])
         self.job(operation,saved,"Validating runtime…")

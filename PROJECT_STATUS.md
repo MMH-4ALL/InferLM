@@ -1,33 +1,35 @@
 # InferLM project status
-Development release **0.1.0**, 12 October 2026.
+Development version **0.2.0**, 12 October 2026.
+Public repository: https://github.com/MMH-4ALL/InferLM
 
-## Implemented
-Desktop/CLI shared services, transactional SQLite storage, hardware observation,
-bounded GGUF imports, local authenticated runtime, streaming/persistence,
-shorter conversation branches, configurable safety reserve, benchmarks,
-bounded tuning, profile validation, themes, exports and runtime installation.
+## Current change
+The desktop workspace has been redesigned around one sidebar, session search,
+a centered chat column, integrated model/composer controls, command search,
+and independent dark/light palettes. See docs/DESIGN.md and CHANGELOG.md.
+The underlying inference, models, storage, benchmark, and tuning services are
+unchanged; the SQLite schema remains compatible with 0.1.
 
-## Verified
-**53 tests passed**, Ruff/mypy passed. Real CPU chat and repeated benchmarking
-completed on tiny Stories and Qwen 2.5 0.5B Instruct. Six-candidate tuning and
-profile application passed. Five GUI pages inspected at 1280×720.
+## Current verification
+57 tests passed; 3 actual-runtime tests skipped because this redesign checkout
+has no model/runtime fixture. Ruff and mypy passed. All five Qt screens were
+inspected at 1320×840 and 960×620, with dark/light and 2× scaling captures.
+Source smoke startup/exit passed. Screen-reader and physical Windows testing
+remain pending. README chat previews use labeled example conversation text.
 
-The standalone Linux executable passed startup/exit and imported-Qwen chat
-verification using its bundled CPU runtime. Packaging uses PyInstaller 6.22.3;
-the earlier Nuitka/PySide build failed startup validation and is not distributed.
-Runtime b11564 / 08ffba21e, Python 3.12.14, PySide6-Essentials 6.12.0.
+## Earlier 0.1 evidence
+53 tests passed with real CPU fixtures. Tiny Stories and Qwen 2.5 0.5B Instruct
+chat/benchmark and six-candidate tuning/profile checks completed. The 0.1 Linux
+PyInstaller package passed startup/exit and Qwen chat. Those historical reports
+remain under docs/validation; they do not verify a new 0.2 native package.
 
-Source archive, wheel and unsigned Linux package are deliverables. The source
-archive is checkpointed with version history. No model weights are included.
-GitHub-ready workflows and draft-release instructions are provided; no remote
-repository or public release has been created in this session.
-
-## Remaining gates
-Windows native verification, physical target laptops, NVIDIA/Vulkan tests,
-real Ubuntu/Mint desktop plugins, 200% scaling and screen-reader validation,
-signed installer/AppImage. Do not call this 1.0 or claim universal optimization.
+## Delivery and remaining gates
+0.2 source is published in the public repository. Windows/Linux package
+workflows are available; no 0.2 native package has been produced in this change.
+Physical target laptops, actual NVIDIA/Vulkan offload, Windows native execution,
+real X11/Wayland plugins, screen-reader use, and signed installers remain gates.
+Model weights are never bundled. Do not call this 1.0 or claim universal gains.
 
 ## Resume
-Use the latest source archive and inspect this file, TESTING.md and current
-files before changes. Preserve the implementation; prioritize Windows/GPU
-validation next. Keep source checkpoints current before long packaging work.
+Inspect latest GitHub main and the current docs before further work. Prioritize
+native Windows packaging and actual target-device checks. Preserve release
+history and keep measurement claims tied to their exact tested build.

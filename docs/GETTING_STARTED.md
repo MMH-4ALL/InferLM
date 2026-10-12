@@ -21,6 +21,13 @@ python3.12 -m venv .venv
 Helper scripts in scripts/ perform these steps. Initial dependency installation
 needs internet. For a smaller install use python -m pip install ".[gui,cli]".
 
+## Workspace shortcuts
+Ctrl+P opens searchable commands. Ctrl+B toggles the sidebar. Ctrl+N starts a
+session; Ctrl+1–5 switch screens. Search saved sessions in the sidebar.
+The composer contains model selection and Load/Unload; its ↑ button sends.
+Chat/session ··· menus provide copy, retry, edit, trim, rename, export, and delete.
+Appearance changes save immediately from Settings without runtime validation.
+
 ## Native Linux package
 Unzip the whole folder; keep _internal and runtime alongside the InferLM executable.
 Run ./InferLM. If executable permissions were lost, run chmod +x InferLM.

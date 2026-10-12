@@ -1,5 +1,6 @@
 import sys
 from inferlm.core.services import Services
+from inferlm import __version__
 
 def main():
     try:
@@ -13,7 +14,7 @@ def main():
         sys.argv.remove("--smoke-test")
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("InferLM")
-    app.setApplicationVersion("0.1.0")
+    app.setApplicationVersion(__version__)
     window = Window(Services())
     window.show()
     if smoke:

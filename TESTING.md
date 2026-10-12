@@ -2,7 +2,19 @@
 Recorded 12 October 2026 in a Linux x86-64 / glibc 2.39 build environment.
 Python 3.12.14, PySide6-Essentials 6.12.0, llama.cpp b11564 (08ffba21e).
 
-## Direct results
+## 0.2 workspace redesign
+57 tests passed, 3 actual-runtime tests skipped in this checkout. Ruff and mypy
+passed. Source GUI smoke startup/exit passed. New interaction checks cover
+compact navigation/composer visibility, session search/open, command dispatch,
+no-result/keyboard behavior, theme persistence without a runtime, sidebar shortcut,
+busy menus/Stop, and Markdown code/raw-HTML handling.
+All five actual Qt screens inspected at 1320×840 and 960×620, in dark/light,
+with an additional QT_SCALE_FACTOR=2 capture pass. These are offscreen build
+environment checks; physical Windows and screen-reader behavior remain pending.
+The example chat in screenshots is labeled UI preview, not measured output.
+No actual inference service changed, and the 0.1 raw reports below remain historical.
+
+## Historical 0.1 direct results
 - Ruff: passed. mypy on src: passed.
 - **53 automated tests passed** with the optional real CPU runtime/model enabled.
 - All five Qt pages inspected at 1280×720; GUI startup/exit passed.
@@ -62,7 +74,7 @@ INFERLM_DATA_DIR=/tmp/inferlm-check ./InferLM --verify-core /path/to/model.gguf 
 | Vulkan | Experimental, unverified |
 | Screen reader and 200% scaling | Unverified manually |
 | Signed installers / AppImage | Not produced |
-| GitHub CI execution and public release | Not performed |
+| Public source repository | Published; per-version CI must be checked separately |
 
 The Linux bundle requires glibc 2.39+. X11 may require libxcb-cursor0.
 Physical tests should cover long chats, stop/restart, saved data, tune/cancel/

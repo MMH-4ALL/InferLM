@@ -3,7 +3,7 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 [project]
 name = "inferlm"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local AI chat and measured laptop tuning"
 readme = "README.md"
 requires-python = ">=3.12"

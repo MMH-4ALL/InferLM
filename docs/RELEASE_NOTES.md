@@ -1,18 +1,26 @@
-# InferLM 0.1.0 — development release
-Local GGUF desktop chat with an optional source-installed CLI.
+# InferLM 0.2.0 — workspace redesign
 
-- Five Qt screens, themes, keyboard controls and background jobs.
-- GGUF validation/relinking, SHA-256 model identity and RAM/VRAM estimates.
-- Authenticated loopback runtime, streaming, stop/retry/edit and saved chats.
-- Shorter conversation branches that preserve original history.
-- Repeated native/server benchmarks, bounded tuning and measured profiles.
-- Pinned CPU runtime installer, Linux standalone package and source/wheel.
-- Tests, Windows/Linux CI definitions and release documentation.
+A new desktop layout inspired by OpenCode's restrained terminal interface.
 
-Runtime b11564 (08ffba21e). Native packaging uses PyInstaller onedir.
-See TESTING.md for direct evidence and remaining release gates.
+- Flat charcoal and warm light themes; monospaced text and amber accents.
+- One sidebar for navigation and searchable saved sessions.
+- Centered conversation with readable message spacing and a compact composer.
+- Model selection, load/unload, and send together in the composer.
+- Secondary chat and session actions moved into menus.
+- Ctrl+P command search, Ctrl+B sidebar toggle, Ctrl+N new session, Ctrl+1–5 screens.
+- Theme changes save immediately, even before a runtime is configured.
+- Scrollable utility screens at smaller window sizes; busy controls and Stop preserved.
+- Markdown rendering preserves code and ignores raw HTML.
 
-Windows, actual NVIDIA/Vulkan acceleration, physical target laptops, 200% scaling
-and real Ubuntu/Mint desktop verification remain unverified. No model weights
-bundled. Split/IQ formats are deferred. Speed tests do not evaluate answer quality.
+The inference, GGUF, storage, benchmarks, and tuning services are unchanged.
+Existing model entries, conversations, profiles, and settings remain compatible.
 
+Validation: 57 tests passed, 3 real-runtime tests explicitly skipped; Ruff and
+mypy passed. Actual Qt layouts were inspected at 1320×840, 960×620, and 2× scale.
+The previous 0.1 CPU inference reports remain under docs/validation; they were
+not rerun or presented as 0.2 native-package verification.
+
+This is a development prerelease distributed as source. No 0.2 Windows/Linux
+binary is attached. The repository includes a manual Native unsigned packages
+workflow that builds on Windows and Linux. Physical Windows/GPU testing,
+screen-reader use, and signed installers remain unverified.
