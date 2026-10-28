@@ -79,6 +79,25 @@ def test_context_limit_keeps_history(services,model_file,monkeypatch):
     assert services.db.get("conversations",conv["id"])["messages"]==[]
     assert services.db.get("conversations",conv["id"])["draft"]=="question"
 
+def test_truncated_stream_is_not_reported_as_complete(monkeypatch):
+    original = httpx.Client
+    data = 'data: {"choices":[{"delta":{"content":"Partial"}}]}\n\n'
+    transport = httpx.MockTransport(lambda request:httpx.Response(200,content=data))
+    monkeypatch.setattr(httpx,"Client",lambda **kwargs:original(transport=transport,**kwargs))
+    runtime = SimpleNamespace(process=SimpleNamespace(poll=lambda:None),url="http://127.0.0.1:123",
+                              headers=lambda:{})
+    pieces = []
+    with pytest.raises(RuntimeError,match="before generation finished"):
+        Client(runtime).generate([],threading.Event(),pieces.append)
+    assert pieces==["Partial"]
+
+def test_generation_cancelled_before_request(monkeypatch):
+    cancel = threading.Event()
+    cancel.set()
+    monkeypatch.setattr(httpx,"Client",lambda **kwargs:pytest.fail("Cancelled jobs must not contact the runtime"))
+    with pytest.raises(Cancelled):
+        Client(SimpleNamespace()).generate([],cancel,lambda _:None)
+
 def test_partial_persisted(services,model_file,monkeypatch):
     model = services.import_model(model_file)
     services.runtime.model,services.runtime.settings = model,Settings()

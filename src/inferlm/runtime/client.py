@@ -30,11 +30,14 @@ class Client:
         return None
 
     def generate(self,messages:list[dict],cancel:threading.Event,emit,max_tokens:int=256,temperature:float=.7):
+        if cancel.is_set():
+            raise Cancelled("Generation stopped.")
         if self.runtime.process is None or self.runtime.process.poll() is not None:
             raise RuntimeError("Load a model before chatting.")
         started,first = time.monotonic(),None
         text = ""
         usage:dict = {}
+        finished = False
         self.last_timings = {}
         body = {"messages":messages,"stream":True,"max_tokens":max_tokens,"temperature":temperature,
                 "seed":42,"cache_prompt":False,"stream_options":{"include_usage":True}}
@@ -53,6 +56,7 @@ class Client:
                             continue
                         data = line[5:].strip()
                         if data=="[DONE]":
+                            finished = True
                             break
                         event = json.loads(data)
                         if event.get("error"):
@@ -66,6 +70,10 @@ class Client:
                                 first = first or time.monotonic()
                                 text += piece
                                 emit(piece)
+            if cancel.is_set():
+                raise Cancelled("Generation stopped.")
+            if not finished:
+                raise RuntimeError("The local runtime closed the response before generation finished. Retry the message.")
         except Exception:
             if cancel.is_set():
                 raise Cancelled("Generation stopped.") from None
